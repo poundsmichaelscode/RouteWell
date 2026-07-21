@@ -1,0 +1,162 @@
+# =========================================================
+# RouteWell Fleet Management System
+# Root .gitignore
+# =========================================================
+
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnp/
+.pnp.js
+
+# Package manager and debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Azure credentials and local configuration
+.azure/
+azureProfile.json
+accessTokens.json
+
+# SSH keys and certificates
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+*.cer
+
+# Service account and secret files
+secrets/
+credentials/
+*.secret
+*.secrets
+*.credentials.json
+
+# Frontend build files
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.cache/
+*.local
+
+# Backend build and runtime files
+backend/dist/
+backend/build/
+backend/coverage/
+backend/logs/
+backend/tmp/
+backend/temp/
+
+# PM2 runtime files
+.pm2/
+pm2.log
+pm2-error.log
+pm2-out.log
+
+# General build and test outputs
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Logs
+logs/
+*.log
+*.log.*
+*.pid
+*.pid.lock
+pids/
+
+# PostgreSQL and database files
+database/backups/*
+!database/backups/.gitkeep
+*.sql.gz
+*.dump
+*.backup
+*.bak
+pgdata/
+postgres-data/
+data/postgres/
+
+# Azure and infrastructure state
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+azure/generated/
+azure/output/
+azure/temp/
+
+# Linux and shell files
+*.swp
+*.swo
+*~
+nohup.out
+core
+core.*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDEs and editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Testing tools
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+
+# Screenshots containing sensitive or temporary evidence
+screenshots/private/
+screenshots/raw/
+screenshots/temp/
+
+# Archives
+*.tgz
+*.zip
+*.tar
+*.tar.gz
+
+# Local notes
+notes.local.md
+todo.local.md
+

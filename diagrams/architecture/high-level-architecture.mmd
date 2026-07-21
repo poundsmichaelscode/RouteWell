@@ -1,0 +1,30 @@
+flowchart LR
+    User[Internet User]
+    Admin[Administrator]
+
+    subgraph Azure[Microsoft Azure]
+        subgraph VNet[RouteWell VNet 10.10.0.0/16]
+            subgraph GatewaySubnet[Application Gateway Subnet]
+                AGW[Azure Application Gateway]
+            end
+
+            subgraph WebSubnet[Web Subnet]
+                WebVM[Ubuntu Web VM<br/>Nginx + React]
+            end
+
+            subgraph AppSubnet[Application Subnet]
+                AppVM[Ubuntu App VM<br/>Node.js + Express + PM2]
+            end
+
+            subgraph DbSubnet[Database Subnet]
+                DbVM[Ubuntu Database VM<br/>PostgreSQL<br/>No Public IP]
+            end
+        end
+    end
+
+    User -->|HTTPS 443| AGW
+    AGW -->|Web traffic| WebVM
+    WebVM -->|Private API traffic| AppVM
+    AppVM -->|TCP 5432| DbVM
+    Admin -. Controlled SSH .-> WebVM
+    Admin -. Controlled SSH .-> AppVM
