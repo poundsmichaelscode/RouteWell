@@ -1,0 +1,4 @@
+"use client";
+import { ResourcePage } from "@/components/resource-page";
+import type { Driver } from "@/lib/types";
+export default function Page(){return <ResourcePage<Driver> title="Drivers" description="Manage driver availability and licence records." endpoint="/drivers" fields={[{name:"firstName",label:"First name",required:true},{name:"lastName",label:"Last name",required:true},{name:"email",label:"Email",type:"email",required:true},{name:"phone",label:"Phone",required:true},{name:"licenseNumber",label:"Licence number",required:true},{name:"licenseExpiry",label:"Licence expiry",type:"date",required:true},{name:"status",label:"Status",type:"select",options:["AVAILABLE","ASSIGNED","OFF_DUTY","SUSPENDED"]}]} columns={[{key:"firstName",label:"First name"},{key:"lastName",label:"Last name"},{key:"email",label:"Email"},{key:"licenseNumber",label:"Licence"},{key:"status",label:"Status"}]}/>}

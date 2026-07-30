@@ -1,20 +1,19 @@
 {
-  "name": "RouteWell",
+  "name": "routewell",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "Enterprise logistics and route management platform",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "dev": "docker compose up --build",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "compose:config": "docker compose config",
+    "compose:down": "docker compose down -v"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.9.0",
-      "onFail": "download"
-    }
+  "engines": {
+    "node": ">=24.0.0"
   },
-  "type": "module"
+  "license": "MIT"
 }

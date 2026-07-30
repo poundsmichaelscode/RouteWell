@@ -1,0 +1,4 @@
+"use client";
+import { ResourcePage } from "@/components/resource-page";
+import type { Vehicle } from "@/lib/types";
+export default function Page(){return <ResourcePage<Vehicle> title="Vehicles" description="Control fleet capacity, type and service state." endpoint="/vehicles" fields={[{name:"registrationNumber",label:"Registration",required:true},{name:"make",label:"Make",required:true},{name:"model",label:"Model",required:true},{name:"year",label:"Year",type:"number",required:true},{name:"type",label:"Type",type:"select",options:["MOTORCYCLE","CAR","VAN","TRUCK","REFRIGERATED_TRUCK"]},{name:"capacityKg",label:"Capacity (kg)",type:"number",required:true},{name:"status",label:"Status",type:"select",options:["AVAILABLE","ASSIGNED","MAINTENANCE","OUT_OF_SERVICE"]}]} columns={[{key:"registrationNumber",label:"Registration"},{key:"make",label:"Make"},{key:"model",label:"Model"},{key:"type",label:"Type"},{key:"status",label:"Status"}]}/>}

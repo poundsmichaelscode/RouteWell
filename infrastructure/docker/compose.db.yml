@@ -1,0 +1,29 @@
+name: routewell-db
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: routewell
+      POSTGRES_USER: routewell
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets: [postgres_password]
+    ports: ["5432:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../docker/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U routewell -d routewell"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: journald
+      options: { tag: "routewell-postgres" }
+secrets:
+  postgres_password: { file: /opt/routewell/secrets/postgres_password }
+volumes:
+  postgres_data:

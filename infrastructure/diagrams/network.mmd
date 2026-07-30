@@ -1,0 +1,6 @@
+flowchart LR
+  Internet --> AGW[10.10.0.0/24\nApplicationGatewaySubnet]
+  AGW --> WEB[10.10.1.0/27\nWeb subnet]
+  WEB --> APP[10.10.2.0/27\nApp subnet]
+  APP --> DB[10.10.3.0/28\nDatabase subnet]
+  BAS[10.10.5.0/26\nAzureBastionSubnet] -. SSH 22 .-> WEB & APP & DB

@@ -1,0 +1,5 @@
+resource_group_name  = "rg-routewell-tfstate"
+storage_account_name = "stroutewelltfstate1234"
+container_name       = "tfstate"
+key                  = "routewell-prod.tfstate"
+use_azuread_auth     = true

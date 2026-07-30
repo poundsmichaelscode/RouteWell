@@ -1,0 +1,7 @@
+flowchart TD
+  User[Internet] -->|HTTPS| AGW[Application Gateway WAF v2]
+  AGW -->|80| Web[Web VM: NGINX + Next.js]
+  Web -->|8080| App[App VM: Express + Redis]
+  App -->|5432| DB[(Private PostgreSQL VM)]
+  Web & App & DB --> KV[Key Vault via Managed Identity]
+  AGW & Web & App & DB --> LAW[Log Analytics]

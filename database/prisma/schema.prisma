@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  DISPATCHER
+  DRIVER
+  VIEWER
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ASSIGNED
+  OFF_DUTY
+  SUSPENDED
+}
+
+enum VehicleType {
+  MOTORCYCLE
+  CAR
+  VAN
+  TRUCK
+  REFRIGERATED_TRUCK
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ASSIGNED
+  MAINTENANCE
+  OUT_OF_SERVICE
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model User {
+  id           String         @id @default(uuid()) @db.Uuid
+  email        String         @unique @db.VarChar(255)
+  passwordHash String         @map("password_hash") @db.VarChar(255)
+  firstName    String         @map("first_name") @db.VarChar(80)
+  lastName     String         @map("last_name") @db.VarChar(80)
+  role         Role           @default(VIEWER)
+  active       Boolean        @default(true)
+  lastLoginAt  DateTime?      @map("last_login_at") @db.Timestamptz(6)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions     Session[]
+  driver       Driver?
+  events       DeliveryEvent[]
+  auditLogs    AuditLog[]
+  notifications Notification[]
+
+  @@index([role, active])
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  refreshTokenHash String    @map("refresh_token_hash") @db.VarChar(64)
+  userAgent        String?   @map("user_agent") @db.VarChar(500)
+  ipAddress        String?   @map("ip_address") @db.VarChar(64)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("sessions")
+}
+
+model Customer {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @db.VarChar(160)
+  email       String?    @db.VarChar(255)
+  phone       String?    @db.VarChar(30)
+  address     String     @db.VarChar(300)
+  city        String     @db.VarChar(100)
+  state       String?    @db.VarChar(100)
+  country     String     @db.VarChar(100)
+  postalCode  String?    @map("postal_code") @db.VarChar(20)
+  notes       String?    @db.Text
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deliveries  Delivery[]
+
+  @@index([name])
+  @@index([email])
+  @@map("customers")
+}
+
+model Driver {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String?      @unique @map("user_id") @db.Uuid
+  firstName      String       @map("first_name") @db.VarChar(80)
+  lastName       String       @map("last_name") @db.VarChar(80)
+  email          String       @unique @db.VarChar(255)
+  phone          String       @db.VarChar(30)
+  licenseNumber  String       @unique @map("license_number") @db.VarChar(80)
+  licenseExpiry  DateTime     @map("license_expiry") @db.Date
+  status         DriverStatus @default(AVAILABLE)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deliveries     Delivery[]
+
+  @@index([status])
+  @@map("drivers")
+}
+
+model Vehicle {
+  id                 String        @id @default(uuid()) @db.Uuid
+  registrationNumber String        @unique @map("registration_number") @db.VarChar(40)
+  make               String        @db.VarChar(80)
+  model              String        @db.VarChar(80)
+  year               Int
+  type               VehicleType
+  capacityKg         Decimal       @map("capacity_kg") @db.Decimal(10, 2)
+  status             VehicleStatus @default(AVAILABLE)
+  lastServiceAt      DateTime?     @map("last_service_at") @db.Date
+  nextServiceAt      DateTime?     @map("next_service_at") @db.Date
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deliveries         Delivery[]
+
+  @@index([status, type])
+  @@map("vehicles")
+}
+
+model Route {
+  id               String     @id @default(uuid()) @db.Uuid
+  name             String     @db.VarChar(160)
+  origin           String     @db.VarChar(250)
+  destination      String     @db.VarChar(250)
+  distanceKm       Decimal?   @map("distance_km") @db.Decimal(10, 2)
+  estimatedMinutes Int?       @map("estimated_minutes")
+  active           Boolean    @default(true)
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deliveries       Delivery[]
+
+  @@index([active])
+  @@map("routes")
+}
+
+model Delivery {
+  id              String           @id @default(uuid()) @db.Uuid
+  trackingNumber  String           @unique @map("tracking_number") @db.VarChar(40)
+  customerId      String           @map("customer_id") @db.Uuid
+  driverId        String?          @map("driver_id") @db.Uuid
+  vehicleId       String?          @map("vehicle_id") @db.Uuid
+  routeId         String?          @map("route_id") @db.Uuid
+  status          DeliveryStatus   @default(PENDING)
+  priority        DeliveryPriority @default(NORMAL)
+  pickupAddress   String           @map("pickup_address") @db.VarChar(300)
+  deliveryAddress String           @map("delivery_address") @db.VarChar(300)
+  scheduledAt     DateTime         @map("scheduled_at") @db.Timestamptz(6)
+  deliveredAt     DateTime?        @map("delivered_at") @db.Timestamptz(6)
+  weightKg        Decimal?         @map("weight_kg") @db.Decimal(10, 2)
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  driver          Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  vehicle         Vehicle?         @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  route           Route?           @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  events          DeliveryEvent[]
+
+  @@index([status, scheduledAt])
+  @@index([customerId])
+  @@index([driverId])
+  @@index([vehicleId])
+  @@map("deliveries")
+}
+
+model DeliveryEvent {
+  id          String         @id @default(uuid()) @db.Uuid
+  deliveryId  String         @map("delivery_id") @db.Uuid
+  status      DeliveryStatus
+  note        String?        @db.VarChar(500)
+  latitude    Decimal?       @db.Decimal(9, 6)
+  longitude   Decimal?       @db.Decimal(9, 6)
+  createdById String?        @map("created_by_id") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  delivery    Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  createdBy   User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([deliveryId, createdAt])
+  @@map("delivery_events")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @db.VarChar(80)
+  entity     String   @db.VarChar(80)
+  entityId   String?  @map("entity_id") @db.VarChar(80)
+  ipAddress  String?  @map("ip_address") @db.VarChar(64)
+  userAgent  String?  @map("user_agent") @db.VarChar(500)
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String   @db.VarChar(160)
+  message   String   @db.Text
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}

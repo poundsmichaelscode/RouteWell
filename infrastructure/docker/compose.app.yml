@@ -1,0 +1,59 @@
+name: routewell-app
+services:
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes: ["redis_data:/data"]
+    networks: [app]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: journald
+      options: { tag: "routewell-redis" }
+
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL_FILE: /run/secrets/database_url
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET_FILE: /run/secrets/jwt_access_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL: 7d
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      COOKIE_SECURE: "true"
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      LOG_LEVEL: info
+    secrets: [database_url, jwt_access_secret, jwt_refresh_secret]
+    depends_on:
+      redis: { condition: service_healthy }
+    ports: ["8080:8080"]
+    networks: [app]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: journald
+      options: { tag: "routewell-backend" }
+secrets:
+  database_url: { file: /opt/routewell/secrets/database_url }
+  jwt_access_secret: { file: /opt/routewell/secrets/jwt_access_secret }
+  jwt_refresh_secret: { file: /opt/routewell/secrets/jwt_refresh_secret }
+networks:
+  app: { driver: bridge }
+volumes:
+  redis_data:

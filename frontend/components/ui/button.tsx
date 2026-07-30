@@ -1,0 +1,5 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger"; size?: "sm" | "md" | "lg" };
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant = "primary", size = "md", ...props }, ref) => <button ref={ref} className={cn("inline-flex items-center justify-center gap-2 rounded-xl font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:pointer-events-none disabled:opacity-50", { "bg-emerald-600 text-white hover:bg-emerald-700": variant === "primary", "border border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100": variant === "secondary", "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800": variant === "ghost", "bg-red-600 text-white hover:bg-red-700": variant === "danger", "h-9 px-3 text-sm": size === "sm", "h-11 px-4 text-sm": size === "md", "h-13 px-6": size === "lg" }, className)} {...props} />);
+Button.displayName = "Button";

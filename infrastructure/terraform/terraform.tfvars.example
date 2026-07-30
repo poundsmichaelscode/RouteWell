@@ -1,0 +1,9 @@
+location             = "West Europe"
+resource_group_name  = "rg-routewell-prod"
+admin_username       = "azureadmin"
+admin_ssh_public_key = "ssh-ed25519 AAAA... replace-me"
+enable_bastion       = false
+enable_https          = false
+# ssl_certificate_key_vault_secret_id = "https://<vault>.vault.azure.net/secrets/<certificate-name>/"
+alert_email = "operations@example.com"
+# cicd_principal_object_id = "00000000-0000-0000-0000-000000000000"

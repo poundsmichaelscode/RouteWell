@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { dashboardController } from "../controllers/dashboard.controller";
+import { authenticate, authorize } from "../middleware/auth";
+import { Role } from "@prisma/client";
+import { asyncHandler } from "../utils/async-handler";
+export const dashboardRouter = Router();
+dashboardRouter.use(authenticate);
+dashboardRouter.get("/summary", asyncHandler(dashboardController.summary));
+dashboardRouter.get("/reports/deliveries", asyncHandler(dashboardController.report));
+dashboardRouter.get("/system", authorize(Role.ADMIN), asyncHandler(dashboardController.system));

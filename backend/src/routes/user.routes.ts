@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { Role } from "@prisma/client";
+import { userController } from "../controllers/user.controller";
+import { audit } from "../middleware/audit";
+import { authenticate, authorize } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { asyncHandler } from "../utils/async-handler";
+import { listQuery, userUpdate } from "../validators/resource.validator";
+export const userRouter = Router();
+userRouter.use(authenticate, authorize(Role.ADMIN));
+userRouter.get("/", validate(listQuery), asyncHandler(userController.list));
+userRouter.patch("/:id", validate(userUpdate), audit("UPDATE", "User"), asyncHandler(userController.update));

@@ -1,0 +1,10 @@
+export type Role = "ADMIN" | "MANAGER" | "DISPATCHER" | "DRIVER" | "VIEWER";
+export type User = { id: string; email: string; firstName: string; lastName: string; role: Role; active: boolean; createdAt?: string };
+export type Pagination = { page: number; limit: number; total: number; pages: number };
+export type ApiList<T> = { success: true; data: T[]; meta: Pagination };
+export type Customer = { id: string; name: string; email?: string; phone?: string; address: string; city: string; state?: string; country: string; active: boolean; createdAt: string };
+export type Driver = { id: string; firstName: string; lastName: string; email: string; phone: string; licenseNumber: string; licenseExpiry: string; status: string; createdAt: string };
+export type Vehicle = { id: string; registrationNumber: string; make: string; model: string; year: number; type: string; capacityKg: string; status: string; createdAt: string };
+export type Route = { id: string; name: string; origin: string; destination: string; distanceKm?: string; estimatedMinutes?: number; active: boolean; createdAt: string };
+export type Delivery = { id: string; trackingNumber: string; status: string; priority: string; pickupAddress: string; deliveryAddress: string; scheduledAt: string; deliveredAt?: string; weightKg?: string; customer: Customer; driver?: Driver; vehicle?: Vehicle; route?: Route; createdAt: string };
+export type DashboardSummary = { totals: { deliveries: number; drivers: number; vehicles: number; customers: number }; status: Record<string, number>; recent: Delivery[] };

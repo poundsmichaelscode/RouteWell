@@ -1,0 +1,48 @@
+name: routewell-web
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is required}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:?BACKEND_INTERNAL_URL is required}
+    expose: ["3000"]
+    networks: [web]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    read_only: true
+    tmpfs: [/tmp, /app/.next/cache]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: journald
+      options: { tag: "routewell-frontend" }
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      frontend: { condition: service_healthy }
+    ports: ["80:80"]
+    volumes:
+      - ../nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    networks: [web]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: journald
+      options: { tag: "routewell-nginx" }
+networks:
+  web: { driver: bridge }
