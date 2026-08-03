@@ -2,7 +2,15 @@
 FROM node:24-alpine AS dependencies
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+ENV NPM_CONFIG_FETCH_RETRIES=5 \
+    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
+    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 \
+    NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --no-fund
 
 FROM dependencies AS build
 ARG NEXT_PUBLIC_API_BASE_URL=/api/v1

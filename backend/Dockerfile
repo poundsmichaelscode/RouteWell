@@ -4,7 +4,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 COPY backend/package*.json ./backend/
 COPY database/prisma ./database/prisma
-RUN cd backend && npm install --ignore-scripts && npm run prisma:generate
+RUN cd backend && npm ci --ignore-scripts && npm run prisma:generate
 
 FROM dependencies AS build
 COPY backend/tsconfig.json ./backend/tsconfig.json
