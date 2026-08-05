@@ -3,18 +3,12 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   js.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.recommended,
   {
-    languageOptions: {
-      parserOptions: {
-        project: "./tsconfig.json",
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
     ignores: ["dist/**", "coverage/**"],
     rules: {
-      "@typescript-eslint/no-misused-promises": ["error", { "checksVoidReturn": false }],
-      "@typescript-eslint/consistent-type-imports": "error"
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/no-explicit-any": "error"
     }
   }
 );

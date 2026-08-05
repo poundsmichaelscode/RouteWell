@@ -77,6 +77,12 @@ case "$tier" in
     export BACKEND_IMAGE="${image_prefix}-backend:${image_tag}"
     export FRONTEND_URL="$public_url"
     export COOKIE_DOMAIN="$cookie_domain"
+    if [[ "$public_url" == https://* ]]; then
+      export COOKIE_SECURE=true
+    else
+      export COOKIE_SECURE=false
+      echo "WARNING: deploying with non-secure cookies because public_url is not HTTPS" >&2
+    fi
     docker compose -f infrastructure/docker/compose.app.yml pull
     docker compose -f infrastructure/docker/compose.app.yml up -d --remove-orphans
     wait_for_healthy infrastructure/docker/compose.app.yml backend 36

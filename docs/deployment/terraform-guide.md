@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Terraform 1.15.x
+- Terraform 1.14.6 or a compatible newer release
 - Azure CLI authenticated with `az login`
 - An Azure subscription and permission to create networking, compute, Key Vault, monitoring and role assignments
 - An SSH public key

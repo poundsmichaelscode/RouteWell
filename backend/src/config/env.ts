@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { z } from "zod";
 import fs from "node:fs";
 
@@ -21,7 +22,8 @@ const schema = z.object({
   FRONTEND_URL: z.string().url().default("http://localhost:3000"),
   COOKIE_SECURE: z.string().default("false").transform((v) => v === "true"),
   COOKIE_DOMAIN: z.string().optional(),
-  LOG_LEVEL: z.enum(["error", "warn", "info", "http", "debug"]).default("info")
+  LOG_LEVEL: z.enum(["error", "warn", "info", "http", "debug"]).default("info"),
+  ALLOW_PUBLIC_REGISTRATION: z.string().default("true").transform((value) => value === "true")
 });
 
 const parsed = schema.safeParse({

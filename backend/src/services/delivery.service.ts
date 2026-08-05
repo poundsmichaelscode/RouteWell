@@ -1,61 +1,268 @@
-import { DeliveryStatus, Role } from "@prisma/client";
+import crypto from "node:crypto";
+import {
+  DeliveryPriority,
+  DeliveryStatus,
+  Prisma,
+  Role
+} from "@prisma/client";
 import { prisma } from "../config/prisma";
+import { canTransitionDelivery } from "../domain/delivery-status";
 import { DeliveryRepository } from "../repositories/delivery.repository";
 import { ApiError } from "../utils/api-error";
 import { paginationMeta } from "../utils/pagination";
+import type { AuthenticatedUser } from "../utils/request-user";
+import { DashboardService } from "./dashboard.service";
 
 const repository = new DeliveryRepository();
+const dashboard = new DashboardService();
+const EDITABLE_STATUSES = new Set<DeliveryStatus>([
+  DeliveryStatus.PENDING,
+  DeliveryStatus.ASSIGNED
+]);
 
 function trackingNumber(): string {
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  return `RW-${date}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const random = crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
+  return `RW-${date}-${random}`;
 }
 
+export type DeliveryCreateData = {
+  customerId: string;
+  driverId?: string;
+  vehicleId?: string;
+  routeId?: string;
+  pickupAddress: string;
+  deliveryAddress: string;
+  scheduledAt: Date;
+  priority?: DeliveryPriority;
+  weightKg?: number;
+  notes?: string;
+};
+
+export type DeliveryUpdateData = Partial<Omit<DeliveryCreateData, "driverId" | "vehicleId" | "routeId" | "weightKg" | "notes">> & {
+  driverId?: string | null;
+  vehicleId?: string | null;
+  routeId?: string | null;
+  weightKg?: number | null;
+  notes?: string | null;
+};
+
 export class DeliveryService {
-  async list(page: number, limit: number, search?: string) {
-    const { items, total } = await repository.list(page, limit, search);
+  async list(page: number, limit: number, search: string | undefined, actor: AuthenticatedUser) {
+    const { items, total } = await repository.list(page, limit, search, actor);
     return { data: items, meta: paginationMeta(total, page, limit) };
   }
 
-  async get(id: string) {
+  async get(id: string, actor: AuthenticatedUser) {
     const delivery = await repository.findById(id);
-    if (!delivery) throw new ApiError(404, "Delivery not found", "DELIVERY_NOT_FOUND");
+    if (!delivery) {
+      throw new ApiError(404, "Delivery not found", "DELIVERY_NOT_FOUND");
+    }
+
+    if (actor.role === Role.DRIVER && delivery.driver?.userId !== actor.id) {
+      // Return 404 rather than revealing another driver's delivery exists.
+      throw new ApiError(404, "Delivery not found", "DELIVERY_NOT_FOUND");
+    }
+
     return delivery;
   }
 
-  create(input: import("@prisma/client").Prisma.DeliveryUncheckedCreateInput) {
-    return prisma.delivery.create({
-      data: { ...input, trackingNumber: trackingNumber(), events: { create: { status: DeliveryStatus.PENDING, note: "Delivery created" } } },
-      include: { customer: true, driver: true, vehicle: true, route: true }
-    });
-  }
+  async create(input: DeliveryCreateData, actor: AuthenticatedUser) {
+    const initiallyAssigned = Boolean(input.driverId);
+    const initialStatus = initiallyAssigned
+      ? DeliveryStatus.ASSIGNED
+      : DeliveryStatus.PENDING;
 
-  update(id: string, input: import("@prisma/client").Prisma.DeliveryUncheckedUpdateInput) {
-    return prisma.delivery.update({ where: { id }, data: input, include: { customer: true, driver: true, vehicle: true, route: true } });
-  }
+    const created = await prisma.$transaction(async (transaction) => {
+      const delivery = await transaction.delivery.create({
+        data: {
+          ...input,
+          trackingNumber: trackingNumber(),
+          status: initialStatus
+        }
+      });
 
-  async updateStatus(id: string, status: DeliveryStatus, data: { note?: string; latitude?: number; longitude?: number }, actorId: string) {
-    const current = await this.get(id);
-    const allowed: Record<DeliveryStatus, DeliveryStatus[]> = {
-      PENDING: [DeliveryStatus.ASSIGNED, DeliveryStatus.CANCELLED],
-      ASSIGNED: [DeliveryStatus.PICKED_UP, DeliveryStatus.CANCELLED],
-      PICKED_UP: [DeliveryStatus.IN_TRANSIT, DeliveryStatus.FAILED],
-      IN_TRANSIT: [DeliveryStatus.DELIVERED, DeliveryStatus.FAILED],
-      DELIVERED: [], FAILED: [DeliveryStatus.ASSIGNED, DeliveryStatus.CANCELLED], CANCELLED: []
-    };
-    if (!allowed[current.status].includes(status)) throw new ApiError(409, `Cannot transition from ${current.status} to ${status}`, "INVALID_STATUS_TRANSITION");
-    return prisma.$transaction(async (tx) => {
-      const delivery = await tx.delivery.update({ where: { id }, data: { status, deliveredAt: status === DeliveryStatus.DELIVERED ? new Date() : undefined } });
-      await tx.deliveryEvent.create({ data: { deliveryId: id, status, note: data.note, latitude: data.latitude, longitude: data.longitude, createdById: actorId } });
-      const recipients = await tx.user.findMany({ where: { active: true, role: { in: [Role.ADMIN, Role.MANAGER] }, NOT: { id: actorId } }, select: { id: true } });
-      if (recipients.length > 0) {
-        await tx.notification.createMany({
-          data: recipients.map((recipient) => ({ userId: recipient.id, title: `Delivery ${status.toLowerCase().replaceAll("_", " ")}`, message: `${current.trackingNumber} changed from ${current.status} to ${status}.` }))
+      const events: Prisma.DeliveryEventCreateManyInput[] = [
+        {
+          deliveryId: delivery.id,
+          status: DeliveryStatus.PENDING,
+          note: "Delivery created",
+          createdById: actor.id
+        }
+      ];
+
+      if (initiallyAssigned) {
+        events.push({
+          deliveryId: delivery.id,
+          status: DeliveryStatus.ASSIGNED,
+          note: "Driver assigned during delivery creation",
+          createdById: actor.id
         });
       }
-      return delivery;
+
+      await transaction.deliveryEvent.createMany({ data: events });
+
+      return transaction.delivery.findUniqueOrThrow({
+        where: { id: delivery.id },
+        include: {
+          customer: true,
+          driver: true,
+          vehicle: true,
+          route: true,
+          events: { orderBy: { createdAt: "desc" } }
+        }
+      });
     });
+
+    await dashboard.invalidate();
+    return created;
   }
 
-  remove(id: string) { return prisma.delivery.delete({ where: { id } }); }
+  async update(id: string, input: DeliveryUpdateData, actor: AuthenticatedUser) {
+    const current = await this.get(id, actor);
+    if (!EDITABLE_STATUSES.has(current.status)) {
+      throw new ApiError(
+        409,
+        "Only pending or assigned deliveries can be edited",
+        "DELIVERY_LOCKED"
+      );
+    }
+
+    let nextStatus = current.status;
+    let assignmentNote: string | undefined;
+
+    if (Object.hasOwn(input, "driverId")) {
+      if (input.driverId && current.status === DeliveryStatus.PENDING) {
+        nextStatus = DeliveryStatus.ASSIGNED;
+        assignmentNote = "Driver assigned";
+      } else if (input.driverId === null && current.status === DeliveryStatus.ASSIGNED) {
+        nextStatus = DeliveryStatus.PENDING;
+        assignmentNote = "Driver assignment removed";
+      } else if (input.driverId !== current.driverId) {
+        assignmentNote = "Driver assignment updated";
+      }
+    }
+
+    if (Object.hasOwn(input, "vehicleId") && input.vehicleId !== current.vehicleId) {
+      assignmentNote = assignmentNote ?? "Vehicle assignment updated";
+    }
+
+    const updated = await prisma.$transaction(async (transaction) => {
+      const delivery = await transaction.delivery.update({
+        where: { id },
+        data: {
+          ...input,
+          status: nextStatus
+        },
+        include: {
+          customer: true,
+          driver: true,
+          vehicle: true,
+          route: true
+        }
+      });
+
+      if (nextStatus !== current.status || assignmentNote) {
+        await transaction.deliveryEvent.create({
+          data: {
+            deliveryId: id,
+            status: nextStatus,
+            note: assignmentNote ?? `Status changed to ${nextStatus}`,
+            createdById: actor.id
+          }
+        });
+      }
+
+      return delivery;
+    });
+
+    await dashboard.invalidate();
+    return updated;
+  }
+
+  async updateStatus(
+    id: string,
+    status: DeliveryStatus,
+    data: { note?: string; latitude?: number; longitude?: number },
+    actor: AuthenticatedUser
+  ) {
+    const current = await this.get(id, actor);
+
+    const driverStatuses = new Set<DeliveryStatus>([
+      DeliveryStatus.PICKED_UP,
+      DeliveryStatus.IN_TRANSIT,
+      DeliveryStatus.DELIVERED,
+      DeliveryStatus.FAILED
+    ]);
+    if (actor.role === Role.DRIVER && !driverStatuses.has(status)) {
+      throw new ApiError(403, "Drivers cannot perform this status change", "FORBIDDEN");
+    }
+
+    if (!canTransitionDelivery(current.status, status)) {
+      throw new ApiError(
+        409,
+        `Cannot transition from ${current.status} to ${status}`,
+        "INVALID_STATUS_TRANSITION"
+      );
+    }
+
+    const delivery = await prisma.$transaction(async (transaction) => {
+      const updated = await transaction.delivery.update({
+        where: { id },
+        data: {
+          status,
+          deliveredAt: status === DeliveryStatus.DELIVERED ? new Date() : null
+        }
+      });
+
+      await transaction.deliveryEvent.create({
+        data: {
+          deliveryId: id,
+          status,
+          note: data.note,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          createdById: actor.id
+        }
+      });
+
+      const recipients = await transaction.user.findMany({
+        where: {
+          active: true,
+          role: { in: [Role.ADMIN, Role.MANAGER] },
+          NOT: { id: actor.id }
+        },
+        select: { id: true }
+      });
+
+      if (recipients.length > 0) {
+        await transaction.notification.createMany({
+          data: recipients.map((recipient) => ({
+            userId: recipient.id,
+            title: `Delivery ${status.toLowerCase().replaceAll("_", " ")}`,
+            message: `${current.trackingNumber} changed from ${current.status} to ${status}.`
+          }))
+        });
+      }
+
+      return updated;
+    });
+
+    await dashboard.invalidate();
+    return delivery;
+  }
+
+  async remove(id: string, actor: AuthenticatedUser) {
+    const current = await this.get(id, actor);
+    if (![DeliveryStatus.PENDING, DeliveryStatus.CANCELLED].includes(current.status)) {
+      throw new ApiError(
+        409,
+        "Only pending or cancelled deliveries can be deleted",
+        "DELIVERY_DELETE_BLOCKED"
+      );
+    }
+
+    await prisma.delivery.delete({ where: { id } });
+    await dashboard.invalidate();
+  }
 }

@@ -1,28 +1,35 @@
 # syntax=docker/dockerfile:1.7
-FROM node:24-alpine AS dependencies
-WORKDIR /app
-COPY package*.json ./
-ENV NPM_CONFIG_FETCH_RETRIES=5 \
-    NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000 \
-    NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000 \
-    NPM_CONFIG_FETCH_TIMEOUT=600000 \
-    NPM_CONFIG_AUDIT=false \
-    NPM_CONFIG_FUND=false
+ARG NODE_VERSION=24.17.0
 
+FROM node:${NODE_VERSION}-alpine AS dependencies
+ENV NEXT_TELEMETRY_DISABLED=1
+WORKDIR /app
+RUN apk add --no-cache libc6-compat
+COPY package*.json .npmrc ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit --no-fund
+    if [ -f package-lock.json ]; then \
+      npm ci --no-audit --no-fund; \
+    else \
+      npm install --prefer-offline --no-audit --no-fund; \
+    fi
 
 FROM dependencies AS build
 ARG NEXT_PUBLIC_API_BASE_URL=/api/v1
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_ALLOW_REGISTRATION=true
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_PUBLIC_ALLOW_REGISTRATION=${NEXT_PUBLIC_ALLOW_REGISTRATION} \
+    NEXT_TELEMETRY_DISABLED=1
 COPY . .
-RUN npm run build
+RUN mkdir -p public && npm run build
 
-FROM node:24-alpine AS production
-ENV NODE_ENV=production
+FROM node:${NODE_VERSION}-alpine AS production
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
-RUN apk add --no-cache wget dumb-init && addgroup -S nextjs && adduser -S nextjs -G nextjs
-COPY --from=build /app/public ./public
+RUN apk add --no-cache wget dumb-init libc6-compat \
+    && addgroup -S nextjs \
+    && adduser -S nextjs -G nextjs
+COPY --from=build --chown=nextjs:nextjs /app/public ./public
 COPY --from=build --chown=nextjs:nextjs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nextjs /app/.next/static ./.next/static
 USER nextjs

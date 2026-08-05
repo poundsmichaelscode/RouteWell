@@ -2,18 +2,23 @@
   "name": "routewell",
   "version": "1.0.0",
   "private": true,
-  "description": "Enterprise logistics and route management platform",
+  "description": "Enterprise logistics and route management portfolio MVP",
   "scripts": {
-    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "init": "./infrastructure/bash/init-env.sh",
+    "install:all": "if [ -f backend/package-lock.json ]; then npm --prefix backend ci --no-audit --no-fund; else npm --prefix backend install --no-audit --no-fund; fi && if [ -f frontend/package-lock.json ]; then npm --prefix frontend ci --no-audit --no-fund; else npm --prefix frontend install --no-audit --no-fund; fi",
     "dev": "docker compose up --build",
+    "up": "docker compose up --build -d",
+    "down": "docker compose down --remove-orphans",
     "test": "npm --prefix backend test && npm --prefix frontend test",
     "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
     "build": "npm --prefix backend run build && npm --prefix frontend run build",
     "compose:config": "docker compose config",
-    "compose:down": "docker compose down -v"
+    "validate": "./infrastructure/bash/validate-local.sh static",
+    "validate:full": "./infrastructure/bash/validate-local.sh full",
+    "lock": "./infrastructure/bash/generate-lockfiles.sh"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=24.0.0 <25"
   },
   "license": "MIT"
 }

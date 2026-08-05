@@ -10,6 +10,9 @@ const users = new UserRepository();
 
 export class AuthService {
   async register(input: { firstName: string; lastName: string; email: string; password: string }, metadata: { ip?: string; userAgent?: string }) {
+    if (!env.ALLOW_PUBLIC_REGISTRATION) {
+      throw new ApiError(403, "Public registration is disabled", "REGISTRATION_DISABLED");
+    }
     if (await users.findByEmail(input.email)) throw new ApiError(409, "Email is already registered", "EMAIL_EXISTS");
     const passwordHash = await bcrypt.hash(input.password, 12);
     const user = await users.create({
@@ -27,19 +30,45 @@ export class AuthService {
     if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new ApiError(401, "Invalid email or password", "INVALID_CREDENTIALS");
     }
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     const tokens = await this.createSession(user, metadata);
-    return { user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, active: user.active }, ...tokens };
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        active: user.active
+      },
+      ...tokens
+    };
   }
 
   async refresh(token: string | undefined, metadata: { ip?: string; userAgent?: string }) {
     if (!token) throw new ApiError(401, "Refresh token required", "REFRESH_TOKEN_REQUIRED");
-    let payload;
-    try { payload = verifyRefreshToken(token); } catch { throw new ApiError(401, "Invalid or expired refresh token", "INVALID_REFRESH_TOKEN"); }
+    let payload: ReturnType<typeof verifyRefreshToken>;
+    try {
+      payload = verifyRefreshToken(token);
+    } catch {
+      throw new ApiError(401, "Invalid or expired refresh token", "INVALID_REFRESH_TOKEN");
+    }
     const session = await prisma.session.findUnique({ where: { id: payload.sessionId }, include: { user: true } });
     if (!session || !session.user.active || session.revokedAt || session.expiresAt < new Date() || session.refreshTokenHash !== hashToken(token)) {
       throw new ApiError(401, "Refresh session is invalid", "INVALID_SESSION");
     }
-    await prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
+    const revoked = await prisma.session.updateMany({
+      where: {
+        id: session.id,
+        revokedAt: null,
+        refreshTokenHash: hashToken(token),
+        expiresAt: { gt: new Date() }
+      },
+      data: { revokedAt: new Date() }
+    });
+    if (revoked.count !== 1) {
+      throw new ApiError(401, "Refresh token has already been used", "REFRESH_TOKEN_REUSED");
+    }
     const tokens = await this.createSession(session.user, metadata);
     return { user: { id: session.user.id, email: session.user.email, firstName: session.user.firstName, lastName: session.user.lastName, role: session.user.role, active: session.user.active }, ...tokens };
   }

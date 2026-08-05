@@ -24,4 +24,13 @@ describe("health endpoints", () => {
     expect(response.status).toBe(200);
     expect(response.body.checks.database).toBe("ok");
   });
+  it("returns a client error for malformed JSON", async () => {
+    const response = await request(createApp())
+      .post("/api/v1/auth/login")
+      .set("content-type", "application/json")
+      .send('{"email":');
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("INVALID_JSON");
+  });
+
 });

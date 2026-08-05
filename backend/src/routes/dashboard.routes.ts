@@ -6,5 +6,5 @@ import { asyncHandler } from "../utils/async-handler";
 export const dashboardRouter = Router();
 dashboardRouter.use(authenticate);
 dashboardRouter.get("/summary", asyncHandler(dashboardController.summary));
-dashboardRouter.get("/reports/deliveries", asyncHandler(dashboardController.report));
+dashboardRouter.get("/reports/deliveries", authorize(Role.ADMIN, Role.MANAGER, Role.DISPATCHER, Role.VIEWER), asyncHandler(dashboardController.report));
 dashboardRouter.get("/system", authorize(Role.ADMIN), asyncHandler(dashboardController.system));

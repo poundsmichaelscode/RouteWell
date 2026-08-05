@@ -1,46 +1,69 @@
 # Docker guide
 
-## Local stack
+## Initial setup
 
 ```bash
-cp .env.example .env
-docker compose up --build
+make init
+make lock
+docker compose --progress=plain build frontend
+docker compose --progress=plain build backend
+docker compose up -d
+make seed
 ```
 
-Services:
+`make init` creates required local secrets. `make lock` resolves dependency metadata with the same Node image used by Docker. If lockfiles are present, the Dockerfiles run `npm ci`; otherwise they use the retry-aware first-install path from `.npmrc`.
 
-| Service | Address |
+## Services
+
+| Service | Exposure |
 |---|---|
-| RouteWell | `http://localhost` |
-| Swagger (direct backend) | `http://localhost/api-docs` through the Next proxy only if routed; direct container is internal |
-| Grafana | `http://127.0.0.1:3001` |
-| Prometheus | `http://127.0.0.1:9090` |
+| NGINX / RouteWell | `${HTTP_PORT:-80}` on all local interfaces |
+| Frontend | Internal only |
+| Backend | Internal only |
+| PostgreSQL | Internal data network only |
+| Redis | Internal app network only |
+| Prometheus | `127.0.0.1:9090`, monitoring profile |
+| Grafana | `127.0.0.1:3001`, monitoring profile |
 
-Seed the local database:
+Start monitoring:
 
 ```bash
-docker compose exec backend npm run prisma:seed:prod
+make monitoring
 ```
 
-Demo login: `admin@routewell.local` / `RouteWellAdmin123!`. This credential is for local demonstration only.
+## Container hardening
 
-## Container security decisions
+- Multi-stage builds.
+- Backend development packages pruned from the runtime image.
+- Non-root application users.
+- Read-only runtime filesystems.
+- Explicit `tmpfs` write locations.
+- `no-new-privileges`.
+- PostgreSQL SCRAM authentication.
+- Internal database network.
+- File-mounted secrets in production.
+- Journald logging in tier-specific production Compose.
 
-- Multi-stage builds keep compilers out of runtime images.
-- Application processes run as non-root users.
-- Runtime filesystems are read-only with explicit `tmpfs` paths.
-- `no-new-privileges` is enabled.
-- PostgreSQL is attached only to the internal data network locally.
-- Production containers use the `journald` logging driver.
-- Production secrets are mounted as files and loaded with `_FILE` environment variables.
-
-## Useful commands
+## Troubleshooting commands
 
 ```bash
-docker compose config
 docker compose ps
-docker compose logs -f backend
-docker compose exec postgres psql -U routewell -d routewell
-docker compose down
-docker compose down -v   # destructive: removes local data
+docker compose logs --tail=150 backend
+docker compose logs --tail=150 frontend
+docker compose logs --tail=150 postgres
+docker compose exec postgres pg_isready -U routewell -d routewell
+docker compose exec redis redis-cli ping
+curl -i http://localhost/api/health
+```
+
+Preserve data while stopping:
+
+```bash
+docker compose down --remove-orphans
+```
+
+Delete all local database, Redis, Prometheus and Grafana volumes:
+
+```bash
+make reset
 ```

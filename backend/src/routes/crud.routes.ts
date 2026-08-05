@@ -33,11 +33,17 @@ type ResourceRouteConfig = {
 
 function resourceRoutes(config: ResourceRouteConfig): Router {
   const router = Router();
+  const readers: RequestHandler = authorize(
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.DISPATCHER,
+    Role.VIEWER
+  );
   const editors: RequestHandler = authorize(Role.ADMIN, Role.MANAGER, Role.DISPATCHER);
   const administrators: RequestHandler = authorize(Role.ADMIN, Role.MANAGER);
 
   router.use(authenticate);
-  router.get("/", validate(listQuery), asyncHandler(config.list));
+  router.get("/", readers, validate(listQuery), asyncHandler(config.list));
   router.post("/", editors, validate(config.createSchema), audit("CREATE", config.entity), asyncHandler(config.create));
   router.patch("/:id", editors, validate(config.updateSchema), audit("UPDATE", config.entity), asyncHandler(config.update));
   router.delete("/:id", administrators, validate(idParams), audit("DELETE", config.entity), asyncHandler(config.remove));

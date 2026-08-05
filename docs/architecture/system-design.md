@@ -55,7 +55,7 @@ Azure reserves five addresses in every subnet. Application Gateway receives a de
 1. Internet traffic terminates at Application Gateway WAF.
 2. Only the gateway subnet can reach web port 80.
 3. Only the web subnet can reach app port 8080.
-4. Only the app subnet can reach database port 5432.
+4. Only the app subnet can reach database port 5432; explicit priority-200 VNet deny rules override Azure's default lateral VNet allow rule.
 5. Administrative SSH is private and originates from Azure Bastion or a self-hosted runner inside the VNet.
 6. VM managed identities read runtime secrets from Key Vault.
 

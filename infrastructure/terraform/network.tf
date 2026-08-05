@@ -208,3 +208,48 @@ resource "azurerm_subnet_network_security_group_association" "db" {
   subnet_id                 = azurerm_subnet.db.id
   network_security_group_id = azurerm_network_security_group.db.id
 }
+
+# Azure NSGs include a default AllowVnetInBound rule. These explicit denies are
+# required after the narrowly scoped allow rules above to preserve tier
+# isolation inside the VNet.
+resource "azurerm_network_security_rule" "web_deny_other_vnet_inbound" {
+  name                        = "Deny-Other-VNet-Inbound"
+  priority                    = 200
+  direction                   = "Inbound"
+  access                      = "Deny"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "VirtualNetwork"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.main.name
+  network_security_group_name = azurerm_network_security_group.web.name
+}
+
+resource "azurerm_network_security_rule" "app_deny_other_vnet_inbound" {
+  name                        = "Deny-Other-VNet-Inbound"
+  priority                    = 200
+  direction                   = "Inbound"
+  access                      = "Deny"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "VirtualNetwork"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.main.name
+  network_security_group_name = azurerm_network_security_group.app.name
+}
+
+resource "azurerm_network_security_rule" "db_deny_other_vnet_inbound" {
+  name                        = "Deny-Other-VNet-Inbound"
+  priority                    = 200
+  direction                   = "Inbound"
+  access                      = "Deny"
+  protocol                    = "*"
+  source_port_range           = "*"
+  destination_port_range      = "*"
+  source_address_prefix       = "VirtualNetwork"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.main.name
+  network_security_group_name = azurerm_network_security_group.db.name
+}

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { prisma } from "../config/prisma";
 import { ApiError } from "../utils/api-error";
+import { routeParam } from "../utils/route-param";
 
 export const notificationController = {
   list: async (request: Request, response: Response) => {
@@ -14,8 +15,9 @@ export const notificationController = {
   },
   markRead: async (request: Request, response: Response) => {
     if (!request.user) throw new ApiError(401, "Authentication required");
+    const notificationId = routeParam(request);
     const result = await prisma.notification.updateMany({
-      where: { id: request.params.id!, userId: request.user.id },
+      where: { id: notificationId, userId: request.user.id },
       data: { readAt: new Date() }
     });
     if (result.count === 0) throw new ApiError(404, "Notification not found", "NOT_FOUND");

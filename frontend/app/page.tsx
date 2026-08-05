@@ -35,7 +35,7 @@ export default function Home() {
         <nav className="hidden items-center gap-7 text-sm text-zinc-600 dark:text-zinc-300 md:flex">
           <a href="#platform">Platform</a>
           <a href="#architecture">Architecture</a>
-          <a href="/api-docs">API</a>
+          <Link href="/api-docs">API</Link>
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle />

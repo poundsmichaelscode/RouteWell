@@ -16,9 +16,12 @@ Create `develop`, protect `main`, and configure pull-request rules described in 
 ## 2. Run locally
 
 ```bash
-cp .env.example .env
-docker compose up --build -d
-docker compose exec backend npm run prisma:seed:prod
+make init
+make lock
+docker compose --progress=plain build frontend
+docker compose --progress=plain build backend
+docker compose up -d
+make seed
 curl http://localhost/healthz
 ```
 

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { paginationMeta } from "../utils/pagination";
 
@@ -17,8 +17,28 @@ export class CrudService {
     const [data, total] = await prisma.$transaction([prisma.driver.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: "desc" } }), prisma.driver.count({ where })]);
     return { data, meta: paginationMeta(total, page, limit) };
   }
-  createDriver(data: Prisma.DriverCreateInput) { return prisma.driver.create({ data }); }
-  updateDriver(id: string, data: Prisma.DriverUpdateInput) { return prisma.driver.update({ where: { id }, data }); }
+  async createDriver(data: Prisma.DriverUncheckedCreateInput) {
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    return prisma.driver.create({
+      data: {
+        ...data,
+        userId: user?.role === Role.DRIVER ? user.id : undefined
+      }
+    });
+  }
+
+  async updateDriver(id: string, data: Prisma.DriverUncheckedUpdateInput) {
+    const current = await prisma.driver.findUniqueOrThrow({ where: { id } });
+    const email = typeof data.email === "string" ? data.email : current.email;
+    const user = await prisma.user.findUnique({ where: { email } });
+    return prisma.driver.update({
+      where: { id },
+      data: {
+        ...data,
+        userId: user?.role === Role.DRIVER ? user.id : null
+      }
+    });
+  }
   deleteDriver(id: string) { return prisma.driver.delete({ where: { id } }); }
 
   async vehicles(page: number, limit: number, search?: string) {

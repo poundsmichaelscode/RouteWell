@@ -18,8 +18,9 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 let refreshPromise: Promise<void> | null = null;
 api.interceptors.response.use((response) => response, async (error: AxiosError) => {
   const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
-  const authPath = original?.url?.includes("/auth/");
-  if (error.response?.status === 401 && original && !original._retried && !authPath) {
+  const terminalAuthPath = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout"]
+    .some((path) => original?.url?.includes(path));
+  if (error.response?.status === 401 && original && !original._retried && !terminalAuthPath) {
     original._retried = true;
     refreshPromise ??= api.post("/auth/refresh").then(() => undefined).finally(() => { refreshPromise = null; });
     await refreshPromise;

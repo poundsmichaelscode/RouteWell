@@ -26,8 +26,11 @@
 | App | 110 | `10.10.5.0/26` | 22 | Optional Azure Bastion administration |
 | DB | 100 | `10.10.2.0/27` | 5432 | PostgreSQL from backend only |
 | DB | 110 | `10.10.5.0/26` | 22 | Optional Azure Bastion administration |
+| Web | 200 | `VirtualNetwork` | Any | Deny all other lateral VNet traffic |
+| App | 200 | `VirtualNetwork` | Any | Deny all other lateral VNet traffic |
+| DB | 200 | `VirtualNetwork` | Any | Deny all other lateral VNet traffic |
 
-All other Internet-initiated inbound traffic is denied by NSG defaults. The database and app VMs have no public IP addresses.
+Azure NSGs include a default `AllowVnetInBound` rule. The explicit priority-200 denies are therefore required after the narrow allow rules above; without them, traffic such as web-to-database could still be accepted by the default rule. All Internet-initiated inbound traffic is denied, and the web, app and database VMs have no public IP addresses.
 
 ## Production hardening checklist
 

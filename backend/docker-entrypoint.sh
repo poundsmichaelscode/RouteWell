@@ -16,5 +16,5 @@ read_secret JWT_REFRESH_SECRET
 read_secret REDIS_URL
 
 cd /app/backend
-npx prisma migrate deploy --schema /app/database/prisma/schema.prisma
+./node_modules/.bin/prisma migrate deploy --schema /app/database/prisma/schema.prisma
 exec node dist/server.js

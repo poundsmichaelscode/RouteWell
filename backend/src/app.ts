@@ -17,7 +17,7 @@ import { apiRouter } from "./routes";
 
 export function createApp() {
   const app = express();
-  app.set("trust proxy", 1);
+  app.set("trust proxy", ["loopback", "linklocal", "uniquelocal", "10.10.1.0/27"]);
   app.disable("x-powered-by");
   app.use(requestContext);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "same-site" } }));
