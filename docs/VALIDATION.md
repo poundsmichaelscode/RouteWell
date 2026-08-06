@@ -11,6 +11,7 @@ The following checks pass through `make validate`:
 - Local and `@/` import target resolution.
 - Required runtime file checks.
 - Dockerfile cache and lockfile-aware install policy.
+- Dependency peer checks for React Testing Library, Recharts and the backend TypeScript ESLint toolchain.
 - Required-secret policy in local Compose.
 - Azure subnet overlap detection.
 - Terraform lexical structure.

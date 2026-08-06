@@ -103,6 +103,8 @@ This writes a mode-`600` `.env` with random PostgreSQL, JWT and Grafana secrets.
 make lock
 ```
 
+The lock step validates npm peer dependencies separately for `backend` and `frontend`. If resolution fails, the failing workspace and a temporary `npm-lock.log` path are printed; partial lockfiles are removed automatically.
+
 This uses the same Node image as the Dockerfiles and creates:
 
 ```text

@@ -1,6 +1,3 @@
-RouteWell Enterprise MVP — Static Validation Record
-Generated: 2026-08-05T10:11:18Z
-
 INFO  Validating RouteWell in static mode
 validated 6 JSON files
 PASS  JSON syntax
@@ -18,11 +15,3 @@ PASS  Markdown links
 PASS  Artifact hygiene
 INFO  Docker unavailable; Compose expansion skipped
 PASS  RouteWell validation complete
-
-Repository files: 191
-TypeScript/TSX source files: 99
-Terraform files: 9
-YAML files: 13
-
-Runtime limitation: Docker, Terraform providers and the npm registry were unavailable in the artifact environment.
-Run 'make init', 'make lock' and 'make validate-full' on a connected development machine.

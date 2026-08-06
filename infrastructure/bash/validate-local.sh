@@ -215,9 +215,21 @@ for dockerfile in [Path('backend/Dockerfile'), Path('frontend/Dockerfile')]:
     if 'package-lock.json' not in text or 'npm ci' not in text:
         errors.append(f'{dockerfile}: lockfile-aware install path is missing')
 
+import json
+backend_manifest = json.loads(Path('backend/package.json').read_text())
+frontend_manifest = json.loads(Path('frontend/package.json').read_text())
 backend_package = Path('backend/package.json').read_text()
 if '@types/uuid' in backend_package:
     errors.append('backend/package.json must not include the deprecated @types/uuid stub')
+
+frontend_dependencies = frontend_manifest.get('dependencies', {})
+frontend_dev_dependencies = frontend_manifest.get('devDependencies', {})
+if frontend_dependencies.get('react-is') != frontend_dependencies.get('react'):
+    errors.append('frontend react-is must be installed and exactly match the React version for Recharts')
+if '@testing-library/dom' not in frontend_dev_dependencies:
+    errors.append('frontend must install the @testing-library/dom peer required by @testing-library/react 16+')
+if backend_manifest.get('devDependencies', {}).get('typescript-eslint') != '8.65.0':
+    errors.append('backend must use the TypeScript-5.9-compatible typescript-eslint 8.65.0 toolchain')
 
 backend_source = '\n'.join(path.read_text() for path in Path('backend/src').rglob('*.ts'))
 if 'params.id!' in backend_source:
