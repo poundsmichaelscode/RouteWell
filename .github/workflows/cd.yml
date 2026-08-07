@@ -1,0 +1,85 @@
+name: Azure deployment — manual until Phase 12
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  images:
+    name: Publish production images
+    runs-on: ubuntu-latest
+    outputs:
+      image_prefix: ${{ steps.names.outputs.image_prefix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - id: names
+        name: Resolve image prefix
+        shell: bash
+        run: echo "image_prefix=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/routewell" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish backend
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.names.outputs.image_prefix }}-backend:${{ github.sha }}
+            ${{ steps.names.outputs.image_prefix }}-backend:latest
+          cache-from: type=gha,scope=backend-prod
+          cache-to: type=gha,mode=max,scope=backend-prod
+          provenance: true
+          sbom: true
+
+      - name: Build and publish frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=/api/v1
+            NEXT_PUBLIC_ALLOW_REGISTRATION=false
+          tags: |
+            ${{ steps.names.outputs.image_prefix }}-frontend:${{ github.sha }}
+            ${{ steps.names.outputs.image_prefix }}-frontend:latest
+          cache-from: type=gha,scope=frontend-prod
+          cache-to: type=gha,mode=max,scope=frontend-prod
+          provenance: true
+          sbom: true
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: images
+    environment: production
+    steps:
+      - name: Phase 12 gate
+        shell: bash
+        run: |
+          echo "This workflow is intentionally manual during Phase 6."
+          echo "Do not run it until Azure resources, OIDC, Key Vault, GitHub environment variables and secrets are configured."
+          exit 1

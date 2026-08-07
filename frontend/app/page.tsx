@@ -127,7 +127,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-zinc-200 py-8 dark:border-zinc-800">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between"><Logo /><p>Portfolio reference implementation · 2026</p></div>
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between"><Logo /><p>Created by OLAYENIKAN MICHAEL TECH-CRUSH DEVOPS/Portfolio reference implementation · 2026</p></div>
       </footer>
     </main>
   );
