@@ -6,18 +6,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 COPY package*.json .npmrc ./
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    set -eu; \
-    attempt=1; \
-    until npm ci --prefer-offline --no-audit --no-fund; do \
-      if [ "$attempt" -ge 5 ]; then \
-        echo "npm ci failed after ${attempt} attempts"; \
-        exit 1; \
-      fi; \
-      echo "npm registry transfer failed; retrying from cache (attempt ${attempt}/5)"; \
-      sleep $((attempt * 15)); \
-      attempt=$((attempt + 1)); \
-    done
+RUN --mount=type=cache,target=/root/.npm \
+    if [ -f package-lock.json ]; then \
+      npm ci --no-audit --no-fund; \
+    else \
+      npm install --prefer-offline --no-audit --no-fund; \
+    fi
 
 FROM dependencies AS build
 ARG NEXT_PUBLIC_API_BASE_URL=/api/v1

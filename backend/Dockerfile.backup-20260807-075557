@@ -6,20 +6,14 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 COPY backend/package*.json backend/.npmrc ./backend/
 COPY database/prisma ./database/prisma
-RUN --mount=type=cache,target=/root/.npm,sharing=locked \
-    set -eu; \
-    cd backend; \
-    attempt=1; \
-    until npm ci --prefer-offline --ignore-scripts --no-audit --no-fund; do \
-      if [ "$attempt" -ge 5 ]; then \
-        echo "npm ci failed after ${attempt} attempts"; \
-        exit 1; \
-      fi; \
-      echo "npm registry transfer failed; retrying from cache (attempt ${attempt}/5)"; \
-      sleep $((attempt * 15)); \
-      attempt=$((attempt + 1)); \
-    done; \
-    npm run prisma:generate
+RUN --mount=type=cache,target=/root/.npm \
+    cd backend \
+    && if [ -f package-lock.json ]; then \
+         npm ci --ignore-scripts --no-audit --no-fund; \
+       else \
+         npm install --prefer-offline --ignore-scripts --no-audit --no-fund; \
+       fi \
+    && npm run prisma:generate
 
 FROM dependencies AS build
 COPY backend/tsconfig.json ./backend/tsconfig.json
