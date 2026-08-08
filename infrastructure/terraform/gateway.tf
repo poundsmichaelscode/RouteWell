@@ -49,7 +49,7 @@ resource "azurerm_application_gateway" "main" {
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   firewall_policy_id  = azurerm_web_application_firewall_policy.main.id
-  enable_http2        = true
+  http2_enabled       = true
 
   identity {
     type         = "UserAssigned"

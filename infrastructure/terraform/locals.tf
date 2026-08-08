@@ -1,5 +1,5 @@
 locals {
-  name_prefix  = "${var.project_name}-${var.environment}"
+  name_prefix   = "${var.project_name}-${var.environment}"
   address_space = "10.10.0.0/16"
   tags          = merge(var.tags, { environment = var.environment })
 

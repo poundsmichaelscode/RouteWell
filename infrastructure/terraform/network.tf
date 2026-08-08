@@ -165,17 +165,17 @@ resource "azurerm_network_security_rule" "dns_outbound" {
 resource "azurerm_network_security_rule" "updates_outbound" {
   for_each = local.tier_nsgs
 
-  name                         = "Allow-Web-Updates"
-  priority                     = 200
-  direction                    = "Outbound"
-  access                       = "Allow"
-  protocol                     = "Tcp"
-  source_port_range            = "*"
-  destination_port_ranges      = ["80", "443"]
-  source_address_prefix        = "*"
-  destination_address_prefix   = "Internet"
-  resource_group_name          = azurerm_resource_group.main.name
-  network_security_group_name  = each.value
+  name                        = "Allow-Web-Updates"
+  priority                    = 200
+  direction                   = "Outbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_ranges     = ["80", "443"]
+  source_address_prefix       = "*"
+  destination_address_prefix  = "Internet"
+  resource_group_name         = azurerm_resource_group.main.name
+  network_security_group_name = each.value
 }
 
 resource "azurerm_network_security_rule" "deny_other_internet_outbound" {

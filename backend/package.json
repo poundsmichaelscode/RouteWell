@@ -11,13 +11,14 @@
     "lint": "eslint src",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "prisma:generate": "prisma generate --schema ../database/prisma/schema.prisma",
-    "prisma:migrate:dev": "prisma migrate dev --schema ../database/prisma/schema.prisma",
-    "prisma:migrate:deploy": "prisma migrate deploy --schema ../database/prisma/schema.prisma",
-    "prisma:migrate:status": "prisma migrate status --schema ../database/prisma/schema.prisma",
+    "prisma:generate": "npm run prisma:sync && prisma generate --config prisma.config.ts",
+    "prisma:migrate:dev": "npm run prisma:sync && prisma migrate dev --config prisma.config.ts",
+    "prisma:migrate:deploy": "npm run prisma:sync && prisma migrate deploy --config prisma.config.ts",
+    "prisma:migrate:status": "npm run prisma:sync && prisma migrate status --config prisma.config.ts",
     "prisma:seed": "tsx src/scripts/seed.ts",
     "swagger:check": "tsx src/scripts/validate-openapi.ts",
-    "prisma:seed:prod": "node dist/scripts/seed.js"
+    "prisma:seed:prod": "node dist/scripts/seed.js",
+    "prisma:sync": "rm -rf prisma && cp -R ../database/prisma ./prisma"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
@@ -27,7 +28,7 @@
     "cors": "2.8.5",
     "dotenv": "17.2.1",
     "express": "5.1.0",
-    "express-rate-limit": "8.1.0",
+    "express-rate-limit": "^8.2.2",
     "helmet": "8.1.0",
     "ioredis": "5.7.0",
     "jsonwebtoken": "9.0.2",
@@ -56,10 +57,10 @@
     "typescript-eslint": "8.65.0",
     "vitest": "3.2.4"
   },
-  "prisma": {
-    "seed": "tsx src/scripts/seed.ts"
-  },
   "engines": {
     "node": ">=24.0.0"
+  },
+  "overrides": {
+    "ip-address": "10.3.1"
   }
 }
