@@ -51,12 +51,12 @@ resource "azurerm_monitor_data_collection_rule" "linux" {
 resource "azurerm_virtual_machine_extension" "ama" {
   for_each = azurerm_linux_virtual_machine.vm
 
-  name                       = "AzureMonitorLinuxAgent"
-  virtual_machine_id         = each.value.id
-  publisher                  = "Microsoft.Azure.Monitor"
-  type                       = "AzureMonitorLinuxAgent"
-  type_handler_version       = "1.0"
-  automatic_upgrade_enabled  = true
+  name                      = "AzureMonitorLinuxAgent"
+  virtual_machine_id        = each.value.id
+  publisher                 = "Microsoft.Azure.Monitor"
+  type                      = "AzureMonitorLinuxAgent"
+  type_handler_version      = "1.0"
+  automatic_upgrade_enabled = true
 }
 
 resource "azurerm_monitor_data_collection_rule_association" "vm" {
