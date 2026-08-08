@@ -1,9 +1,11 @@
 import crypto from "node:crypto";
 import {
-  DeliveryPriority,
   DeliveryStatus,
-  Prisma,
   Role
+} from "@prisma/client";
+import type {
+  DeliveryPriority,
+  Prisma
 } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { canTransitionDelivery } from "../domain/delivery-status";

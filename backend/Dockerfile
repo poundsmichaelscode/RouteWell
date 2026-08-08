@@ -4,7 +4,7 @@ ARG NODE_VERSION=24.17.0
 FROM node:${NODE_VERSION}-alpine AS dependencies
 WORKDIR /app
 RUN apk add --no-cache openssl
-COPY backend/package*.json backend/.npmrc ./backend/
+COPY backend/package*.json backend/.npmrc backend/prisma.config.ts ./backend/
 COPY database/prisma ./database/prisma
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     set -eu; \

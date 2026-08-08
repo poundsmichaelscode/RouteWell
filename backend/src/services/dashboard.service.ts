@@ -1,4 +1,5 @@
-import { DeliveryStatus, Prisma, Role } from "@prisma/client";
+import { DeliveryStatus, Role } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { redis } from "../config/redis";
 import type { AuthenticatedUser } from "../utils/request-user";

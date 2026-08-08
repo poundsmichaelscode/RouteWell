@@ -160,3 +160,8 @@ screenshots/temp/
 notes.local.md
 todo.local.md
 
+
+# Prisma working copy generated from database/prisma
+backend/prisma/
+frontend/.next/
+.next/

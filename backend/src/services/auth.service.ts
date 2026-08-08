@@ -1,3 +1,4 @@
+import type { Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma";
 import { UserRepository } from "../repositories/user.repository";
@@ -81,7 +82,7 @@ export class AuthService {
     } catch { /* Expired or malformed tokens are treated as logged out. */ }
   }
 
-  private async createSession(user: { id: string; email: string; role: import("@prisma/client").Role }, metadata: { ip?: string; userAgent?: string }) {
+  private async createSession(user: { id: string; email: string; role: Role }, metadata: { ip?: string; userAgent?: string }) {
     const session = await prisma.session.create({ data: { userId: user.id, refreshTokenHash: "pending", expiresAt: new Date(Date.now() + durationToMilliseconds(env.REFRESH_TOKEN_TTL)), ipAddress: metadata.ip, userAgent: metadata.userAgent } });
     const refreshToken = signRefreshToken({ sub: user.id, sessionId: session.id });
     await prisma.session.update({ where: { id: session.id }, data: { refreshTokenHash: hashToken(refreshToken) } });
