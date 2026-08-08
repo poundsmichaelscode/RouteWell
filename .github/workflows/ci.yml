@@ -1,10 +1,17 @@
+
 name: CI
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+
   workflow_dispatch:
 
 permissions:
@@ -19,9 +26,11 @@ jobs:
     name: Backend quality
     runs-on: ubuntu-latest
     timeout-minutes: 25
+
     defaults:
       run:
         working-directory: backend
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://test:test@localhost:5432/test
@@ -30,6 +39,7 @@ jobs:
       JWT_REFRESH_SECRET: test-refresh-secret-that-is-more-than-32-characters
       FRONTEND_URL: http://localhost:3000
       ALLOW_PUBLIC_REGISTRATION: "true"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -42,12 +52,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: |
-          if [[ -f package-lock.json ]]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+        run: npm ci --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npm run prisma:generate
@@ -68,9 +73,16 @@ jobs:
     name: Frontend quality
     runs-on: ubuntu-latest
     timeout-minutes: 25
+
     defaults:
       run:
         working-directory: frontend
+
+    env:
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      NEXT_PUBLIC_ALLOW_REGISTRATION: "true"
+      BACKEND_INTERNAL_URL: http://localhost:8080
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -83,12 +95,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: |
-          if [[ -f package-lock.json ]]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+        run: npm ci --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
@@ -98,15 +105,15 @@ jobs:
 
       - name: Production build
         run: npm run build
-        env:
-          NEXT_PUBLIC_API_BASE_URL: /api/v1
-          NEXT_PUBLIC_ALLOW_REGISTRATION: "true"
-          BACKEND_INTERNAL_URL: http://localhost:8080
 
   infrastructure:
     name: Infrastructure validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    env:
+      TF_IN_AUTOMATION: "true"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -121,25 +128,41 @@ jobs:
         run: terraform -chdir=infrastructure/terraform fmt -check -recursive
 
       - name: Terraform initialize without backend
-        run: terraform -chdir=infrastructure/terraform init -backend=false -input=false
+        run: |
+          terraform \
+            -chdir=infrastructure/terraform \
+            init \
+            -backend=false \
+            -input=false
 
       - name: Terraform validate
         run: terraform -chdir=infrastructure/terraform validate
 
       - name: Validate Docker Compose
+        env:
+          SEED_ADMIN_PASSWORD: CI-RouteWell-Admin-Password-2026
+          SEED_DRIVER_PASSWORD: CI-RouteWell-Driver-Password-2026
         run: |
+          set -euo pipefail
+
           cp .env.example .env
+          trap 'rm -f .env' EXIT
+
           docker compose config --quiet
-          rm -f .env
 
   docker:
     name: Container build
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: [backend, frontend]
+
+    needs:
+      - backend
+      - frontend
+
     permissions:
       contents: read
       actions: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -169,3 +192,4 @@ jobs:
             NEXT_PUBLIC_ALLOW_REGISTRATION=true
           cache-from: type=gha,scope=routewell-frontend
           cache-to: type=gha,mode=max,scope=routewell-frontend
+
